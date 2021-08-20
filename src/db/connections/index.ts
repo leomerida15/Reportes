@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { Sequelize, AddScopeOptions } from 'sequelize';
 
 const DB_NAME = process.env.DB_NAME || 'milpagos';
 const dialect = 'mssql'; /* one of 'mysql' | 'mariadb' | 'postgres' | 'mssql' En latam usamos Postgresql */
@@ -16,13 +16,20 @@ const user = process.env.DB_USER || 'usr_milpagos';
  */
 
 // conet with database
-const web: any = () =>
+const web = () =>
 	new Sequelize(DB_NAME, user, DB_PASS, {
 		host,
 		dialect,
 		dialectOptions: { ssl: { rejectUnauthorized: false } },
 	});
 
-const local: any = () => new Sequelize(DB_NAME, user, DB_PASS, { host, dialect });
+const local = () =>
+	new Sequelize(DB_NAME, user, DB_PASS, {
+		host,
+		dialect,
+		dialectOptions: {
+			requestTimeout: 30000,
+		},
+	});
 
 export default process.env.PORT ? web() : local();

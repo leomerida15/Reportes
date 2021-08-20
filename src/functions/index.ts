@@ -1,151 +1,165 @@
-const querys: any[] = [
+import { DateTime } from 'luxon';
+
+interface select {
+	key: string;
+	query: string;
+}
+
+export const selects: select[] = [
 	{
-		key: 'comerRif',
+		key: 'CEDULA_RIF',
 		query: 'c.comerRif AS [CEDULA-RIF]',
 	},
 	{
-		key: 'comerRif',
-		query: 'c.comerRif AS [CEDULA-RIF]',
+		key: 'COMERCIO',
+		query: 'c.comerDesc AS COMERCIO',
 	},
 	{
-		key: 'comerRif',
-		query: 'c.comerRif AS [CEDULA-RIF]',
+		key: 'DIRECCION',
+		query: 'c.comerDireccion AS DIRECCION',
 	},
 	{
-		key: 'comerRif',
-		query: 'c.comerRif AS [CEDULA-RIF]',
+		key: 'TERMINAL',
+		query: 'a.aboTerminal AS TERMINAL',
 	},
 	{
-		key: 'comerRif',
-		query: 'c.comerRif AS [CEDULA-RIF]',
+		key: 'FechaEjec',
+		query: 'a.hisFechaEjecucion AS FechaEjec',
 	},
 	{
-		key: 'comerRif',
-		query: 'c.comerRif AS [CEDULA-RIF]',
+		key: 'FechaPreceso',
+		query: 'a.hisFechaProceso AS FechaPreceso',
 	},
 	{
-		key: 'comerRif',
-		query: 'c.comerRif AS [CEDULA-RIF]',
+		key: 'COD_COMERCIO',
+		query: 'c.comerCod as [COD_COMERCIO]',
 	},
+	{
+		key: 'N_CUENTA',
+		query: 'c.comerCuentaBanco as [N_CUENTA]',
+	},
+	{
+		key: 'N_AFILIADO',
+		query: 'a.aboCodAfi as [N_AFILIADO]',
+	},
+	{
+		key: 'MONTO_NETO',
+		query: 'a.Monto_Neto AS [MONTO_NETO]',
+	},
+	{
+		key: 'MONTO_BRUTO_TDD',
+		query: 'a.monto_bruto_tdd as [MONTO_BRUTO_TDD]',
+	},
+	{
+		key: 'MONTO_BRUTO_TDC',
+		query: 'a.monto_bruto_tdc as [MONTO_BRUTO_TDC]',
+	},
+	{
+		key: 'COMISION_MANTENIMIENTO',
+		query: 'a.comision_mantenimiento as [COMISION_MANTENIMIENTO]',
+	},
+	{
+		key: 'MONTO_BRUTO',
+		query: 'a.monto_bruto_tdc + a.monto_bruto_tdd AS [MONTO_BRUTO]',
+	},
+	{
+		key: 'MONTO_ABONAR',
+		query: '(a.monto_abono) AS [MONTO_ABONAR]',
+	},
+	{ key: 'TASA', query: 'f.hisTasaBCV AS [TASA]' },
+	{ key: 'ORG', query: 'h.Nombre_Org AS [ORG]' },
 ];
 
-/* sql */ `
-select *
+export const selectQuery = (keys: string[]) => {
+	return selects
+		.filter((select): boolean => keys.includes(select.key))
+		.map((select) => select.query)
+		.join(', ');
+};
 
-from (
-    SELECT c.comerRif AS [CEDULA-RIF],
+export const dateRang = (init: string, end: string): string => {
+	// use luxon js to format the date in format YYYY-MM-DD
+	const initDate = DateTime.fromFormat(init, 'YYYY-MM-DD');
+	const endDate = DateTime.fromFormat(end, 'YYYY-MM-DD');
 
-    c.comerDesc AS COMERCIO, 
+	return /* sql */ ` WHERE   hisFechaEjecucion BETWEEN '${initDate}' AND  '${endDate}'`;
+};
 
-    c.comerDireccion AS DIRECCION,
+export const FormatQuery = (DatesRang: string, selects: string): string => {
+	return /* sql */ `
+    select *
 
-    a.aboTerminal AS TERMINAL, 
+    from 
 
-    a.hisFechaEjecucion AS FechaEjec, 
+    (SELECT ${selects}
 
-    a.hisFechaProceso AS FechaPreceso, 
+    FROM
 
-    c.comerCod as [COD_COMERCIO],
+           (SELECT  
 
-    c.comerCuentaBanco as [N_CUENTA] ,
+                  hisFechaEjecucion, 
 
-    a.aboCodAfi as [N_AFILIADO],
+                  hisFechaProceso,
 
-    SUM(a.Monto_Neto) AS [MONTO_NETO], 
+                 aboTerminal, 
 
-    (SUM(a.monto_bruto_tdc) + SUM(a.monto_bruto_tdd)) AS [MONTO_BRUTO],
+                  aboCodAfi,
 
-    a.monto_bruto_tdd as [MONTO_BRUTO_TDD],
+                 (SUM(hisAmountTDD) + SUM(hisAmountTDC)) AS Monto_Neto, ---TARJETA DE CREDITO + TARJETA DE DEBITO
 
-    a.monto_bruto_tdc as [MONTO_BRUTO_TDC],
+                  (SUM(hisAmountTDD) + SUM(hisAmountComisionBanco) - SUM(hisAmountTDCImpuesto)) as monto_bruto_tdd, --Monto Bruto TDD
 
-    a.comision_mantenimiento as [COMISION_MANTENIMIENTO],
+                  (SUM(hisAmountTDC) + SUM(hisAmountTDCImpuesto)) as monto_bruto_tdc, --Monto Bruto TDC
 
-    
+                  (SUM(hisIvaSobreMantenimiento) + SUM(hisComisionMantenimiento) + SUM(hisComisionBancaria)) as comision_mantenimiento,--Comision de Mantenimiento
 
-    SUM(a.monto_abono) AS [MONTO_ABONAR],
+                  SUM(hisComisionMantenimiento) AS comision_servicio, -- COMISION DE SERVISIO es Base Imponible
 
-    
+                  SUM(hisAmountComisionBanco) AS comision_banco, -- COMISION BANCARIA
 
-    f.hisTasaBCV AS [TASA]
+                  SUM(hisNetoComisionBancaria) AS monto_por_comision, -- COBRO POR COMISION BANCARIA 1,50%
 
- 
+                  SUM(hisIvaSobreMantenimiento) AS monto_por_servicio, -- COMISION POR SERVICIO ($35+iva = $40,60 a tasa BCV)
 
- 
+                  (SUM(hisAmountComisionBanco) - SUM(hisAmountTDCImpuesto)) AS monto_comision_tdd,  --CALCULA LA COMISION DE TDD CUANDO HAY CREDITO
 
- 
+                  SUM(hisAmountTotal) AS monto_abono  -- SIGUE IGUAL 
 
- 
-
-FROM
-
-       (SELECT 
-
-              hisFechaEjecucion,
-
-              hisFechaProceso,
-
-             aboTerminal,
-
-              aboCodAfi,
-
-             (SUM(hisAmountTDD) + SUM(hisAmountTDC)) AS Monto_Neto, ---TARJETA DE CREDITO + TARJETA DE DEBITO
-
-              (SUM(hisAmountTDD) + SUM(hisAmountComisionBanco) - SUM(hisAmountTDCImpuesto)) as monto_bruto_tdd, --Monto Bruto TDD
-
-              (SUM(hisAmountTDC) + SUM(hisAmountTDCImpuesto)) as monto_bruto_tdc, --Monto Bruto TDC
-
-              (SUM(hisIvaSobreMantenimiento) + SUM(hisComisionMantenimiento) + SUM(hisComisionBancaria)) as comision_mantenimiento,--Comision de Mantenimiento
-
-              SUM(hisComisionMantenimiento) AS comision_servicio, -- COMISION DE SERVISIO es Base Imponible
-
-              SUM(hisAmountComisionBanco) AS comision_banco, -- COMISION BANCARIA
-
-              SUM(hisNetoComisionBancaria) AS monto_por_comision, -- COBRO POR COMISION BANCARIA 1,50%
-
-              SUM(hisIvaSobreMantenimiento) AS monto_por_servicio, -- COMISION POR SERVICIO ($35+iva = $40,60 a tasa BCV)
-
-              (SUM(hisAmountComisionBanco) - SUM(hisAmountTDCImpuesto)) AS monto_comision_tdd,  --CALCULA LA COMISION DE TDD CUANDO HAY CREDITO
-
-              SUM(hisAmountTotal) AS monto_abono  -- SIGUE IGUAL
+                  
 
              
 
-         
+    FROM     
 
-FROM    
+    
 
- 
+    Historico 
 
-Historico
+    
 
- 
+    WHERE   hisFechaEjecucion BETWEEN '2021-07-10' AND  '2021-07-15'
 
-WHERE   hisFechaEjecucion BETWEEN @StartDate AND @EndDate
+                  GROUP BY hisFechaEjecucion, aboTerminal,hisFechaProceso,aboCodAfi) AS a INNER JOIN
 
-              GROUP BY hisFechaEjecucion, aboTerminal,hisFechaProceso,aboCodAfi) AS a INNER JOIN
+    Abonos AS b ON a.aboTerminal = b.aboTerminal INNER JOIN
 
-Abonos AS b ON a.aboTerminal = b.aboTerminal INNER JOIN
+    Comercios AS c ON b.aboCodComercio = c.comerCod LEFT OUTER JOIN
 
-Comercios AS c ON b.aboCodComercio = c.comerCod LEFT OUTER JOIN
+    Aliados AS d ON c.comerCodAliado = d.id LEFT OUTER JOIN
 
-Aliados AS d ON c.comerCodAliado = d.id LEFT OUTER JOIN
+    Bancos AS e ON SUBSTRING(b.aboNroCuenta, 1, 4) = e.banCodBan LEFT OUTER JOIN
 
-Bancos AS e ON SUBSTRING(b.aboNroCuenta, 1, 4) = e.banCodBan LEFT OUTER JOIN
+    LoteCerradoDetalle AS f ON a.hisFechaEjecucion = f.hisFechaEjecucion and a.aboTerminal = f.aboTerminal LEFT OUTER JOIN
 
-LoteCerradoDetalle AS f ON a.hisFechaEjecucion = f.hisFechaEjecucion and a.aboTerminal = f.aboTerminal INNER JOIN
+    Cartera_Ter AS g ON a.aboTerminal = Terminal_Id LEFT OUTER JOIN
 
-group by c.comerRif, c.comerDesc, c.comerDireccion, a.aboTerminal, a.hisFechaEjecucion, d.aliIdentificacion,d.aliNombres, d.aliApellidos,c.comerCod,c.comerCuentaBanco,
+    Cartera AS h ON g.Cod_Cartera = h.Cod_Cartera
 
-a.monto_bruto_tdd,a.monto_bruto_tdC,a.comision_mantenimiento,a.aboCodAfi,a.hisFechaProceso,f.hisTasaBCV
+    group by c.comerRif, c.comerDesc, c.comerDireccion, a.aboTerminal, a.hisFechaEjecucion, d.aliIdentificacion,d.aliNombres, d.aliApellidos,c.comerCod,c.comerCuentaBanco,
 
-) as c order by c.MONTO_NETO desc
+    a.monto_bruto_tdd,a.monto_bruto_tdC,a.comision_mantenimiento,a.aboCodAfi,a.hisFechaProceso,f.hisTasaBCV,a.Monto_Neto,a.monto_abono,h.Nombre_Org
 
- 
-`;
+    ) as c order by c.TERMINAL desc
 
-const QueryDB = (keys: string[]) => {
-	const quert: any = querys.filter((item: any) => keys.includes(item.key)).map((item: any) => {});
+    `;
 };
-
-export default QueryDB;

@@ -1,9 +1,9 @@
 import { Application } from 'express';
 
 // rputers
-import auth from './auth/auth.routes';
+import { query } from '../controllers/index';
 
 //
 export default (app: Application) => {
-	app.use('auth', auth);
+	app.get('/query', query);
 };
