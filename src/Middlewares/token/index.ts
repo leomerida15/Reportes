@@ -1,5 +1,5 @@
 // modules
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import list from './list';
 const Key: string = process.env.KEY || 'user';
@@ -7,6 +7,9 @@ const Key: string = process.env.KEY || 'user';
 /** this middleware is for convert json web token in Objet format */
 export default (req: Request, res: Response, next: NextFunction) => {
 	try {
+		console.log('body', req.body);
+		console.log('querys', req.query);
+
 		// define array route
 		const route: string[] = req.path.split('/');
 

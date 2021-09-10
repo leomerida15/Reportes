@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
-import pool from '../db';
-import { selectQuery, dateRang, FormatQuery } from '../functions/index';
 // @ts-ignore
 import numeral from 'numeral';
+import pool from '../db';
+import { dateRang, FormatQuery, selectQuery } from '../functions/index';
 
 interface body {
 	keys: string[];
@@ -24,6 +24,10 @@ export const query = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
+		console.log('body', req.body);
+		console.log('query', req.query);
+		console.log('headers', req.headers);
+
 		// definimos variables
 		const { keys } = req.body;
 		const { init, end } = req.query;
